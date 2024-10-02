@@ -1,0 +1,646 @@
+---
+title: "Analisis multivariado de datos"
+author: "Juan Sebastian Pedraza"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r librerias, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(ggpubr)
+library(MVQuickGraphs)
+library(DescTools)
+```
+
+## Introducción 
+En este documento, desarrollaremos los ejercicios 5.1 al 5.3(a), 5.4, 5.5, 5.11(a,c y d), 5.18 al 5.20(a,c) del libro *"Applied Multivariate Statistical Analysis"* de Johnson y Wichern. El objetivo es solucionarlos y brindar un analisis exhaustivo de los resultados obtenidos.    
+
+## 5.1
+
+(a) Evaluar $T^2$, para testear $H_o: \mu^{\prime} =[7, 11]$ vs  $H_1: \mu^{\prime} \neq [7, 11]$ , usando la muestra
+\[
+X = 
+\begin{bmatrix}
+2 & 12 \\
+8 & 9\\
+6 & 9 \\
+8 & 10
+\end{bmatrix}
+\]
+
+
+```{r 5.1 a}
+
+X <-  matrix(c(2, 12,
+             8, 9,
+             6, 9,
+             8, 10),byrow = TRUE, ncol = 2)
+
+
+n  <- nrow(X)
+X_barra <- colMeans(X)
+mu_0 <-  c(7,11)
+S <- cov(X)
+
+T2 <- n*t(X_barra - mu_0) %*% solve(S) %*% (X_barra - mu_0) 
+
+print(paste("El estadístico T^2 =", T2[1, 1]))
+```
+(b) Espefifique la distribucion de $T^2$  
+Recordemos que $dim(X)=4\times 2$, de inmediato $p = 2$, $n =4$. de donde $T2 \sim \frac{(n-1)p}{(n-p)} F_{p,(n-p)} = 3F_{2,2}$ 
+(c) Usando (a) y (b), testear $H_0$ con un $\alpha = .05$. Que conclusion encuentra?
+```{r 5.1 b}
+
+T2_c <- 3*qf(0.95,2,2)
+print(paste("El valor critico es =", T2_c))
+
+```
+Finalmente como la region de rechazo esta dada por $RRH_0 = \{ T^2>  3F_{1-0.05;2,2}\}$, como no se cumple se entonces NO rechazamos $H_0$ y concluimos que con una significancia del 5% rechazamos $H_0$ y concluimos a favor de $H_1$ tal que $\mu^{\prime} \neq [7, 11]$.
+
+
+# 5.2
+
+Usando los datos del ejemplo 5.1 , verifique que $T^2$ permanezca sin cambios si cada observacion $X_j \:\:, j=1,2,3$; es remplazado por $Cx_j$, donde 
+\[
+C = 
+\begin{bmatrix}
+1 & -1 \\
+1 & 1
+\end{bmatrix}
+\]
+Aca tenemos los datos del ejemplo 5.1
+```{r ejemplo 5.1 }
+
+
+
+X <- matrix(c(6,10,8,
+              9,6,3),byrow=FALSE,ncol=2)
+
+mu_0 <- matrix(c(9,5),ncol=1)
+
+n  <- nrow(X)
+X_barra <- colMeans(X)
+S <- cov(X)
+
+T2 <- n*t(X_barra - mu_0) %*% solve(S) %*% (X_barra - mu_0) 
+
+print(paste("Sobre la matriz original, el estadístico T^2 =", T2[1, 1]))
+
+```
+Ahora miremos si para la combinacion lineal de medias se mantiene el estadistico $T^2$
+
+```{r  5.2 }
+
+C <- matrix(c(1, -1,
+              1, 1), byrow = TRUE, ncol = 2)
+
+CX <-  X %*% t(C)
+
+
+
+mu_0 <- C %*% matrix(c(9,5),ncol=1)
+
+
+n  <- nrow(CX)
+X_barra <- colMeans(CX)
+S <- cov(CX)
+
+T2 <- n*t(X_barra - mu_0) %*% solve(S) %*% (X_barra - mu_0) 
+
+print(paste("Sobre la matriz original, el estadístico T^2 =", T2[1, 1]))
+
+
+```
+Concluimos que al verificar la pueba de hipotesis sobre la combinacion lineal dada no cambia siempre y cuando se aplique $C\mu_0$ a la media que queremos testear.
+
+
+# 5.3
+
+Use la siguiente expresion para calcular el $T^2$ sobre el ejercicio 5.1
+
+\[
+T^2 = \frac{(n - 1) \left| \hat{\Sigma}_0 \right|}{\left| \hat{\Sigma} \right|} - (n - 1)
+\]
+\[
+= \frac{(n - 1) |\sum_{j=1}^{n} (x_j - \mu_0)(x_j - \mu_0)'|}{|\sum_{j=1}^{n} (x_j - \bar{x})(x_j - \bar{x})'|} - (n - 1)
+\]
+
+```{r  5.3 }
+
+X <- matrix(c(2, 12,
+              8, 9,
+              6, 9,
+              8, 10), byrow = TRUE, ncol = 2)
+
+n <- nrow(X)
+X_barra <- colMeans(X)
+mu_0 <- c(7, 11)
+
+S0 <- matrix(0, ncol = 2, nrow = 2)
+for (j in 1:n) {
+  S0 <- S0 + (X[j, ] - mu_0) %*% t(X[j, ] - mu_0)
+}
+
+S <- matrix(0, ncol = 2, nrow = 2)
+for (j in 1:n) {
+  S <- S + (X[j, ] - X_barra) %*% t(X[j, ] - X_barra)
+}
+
+numerator <- (n - 1) * det(S0)
+denominator <- det(S)
+
+T2_value <- (numerator / denominator) - (n - 1)
+
+print(paste("El valor de T^2 es:", T2_value))
+
+
+```
+
+# 5.4 
+Usando sweet data 
+
+```{r  sweet data }
+
+
+sweat_data  <- data.frame(
+  Sweat_rate = c(3.7, 5.7, 3.8, 3.2, 3.1, 4.6, 2.4, 7.2, 6.7, 5.4,
+               3.9, 4.5, 3.5, 4.5, 1.5, 8.5, 4.5, 6.5, 4.1, 5.5),
+  Sodium = c(48.5, 65.1, 47.2, 53.2, 55.5, 36.1, 24.8, 33.1, 47.4, 54.1,
+               36.9, 58.8, 27.8, 40.2, 13.5, 56.4, 71.6, 52.8, 44.1, 40.9),
+  Potassium = c(9.3, 8.0, 10.9, 12.0, 9.7, 7.9, 14.0, 7.6, 8.5, 11.3,
+               12.7, 12.3, 9.8, 8.4, 10.1, 7.1, 8.2, 10.9, 11.2, 9.4)
+)
+
+
+```
+
+(a) Determine los ejes de la elipsiode al 90% de confianza para $\mu$. Determine la longitud de los ejes.
+
+```{r  5.4 a }
+
+p <- ncol(sweat_data)
+n <- nrow(sweat_data)
+
+S <- cov(sweat_data)
+
+e_i <- eigen(S)$vectors
+lambda_i <- eigen(S)$values
+
+alpha <- 0.1
+
+F_c <- qf(1 - alpha, df1 = p, df2 = n - p)
+
+X_barra <- colMeans(sweat_data)
+
+
+axes_length <- sqrt(lambda_i) * sqrt(p*(n-1)*F_c)/(n*(n-p))
+
+axes_direction <- e_i
+axes_length
+axes_direction
+
+```
+
+
+Para la elipse de confianza al 90% de singificancia para los valores de la media tenemos que esta centrada en la media muestral con los ejes, mencionados y sus respectivas longitudes
+
+(b) Construya el Q-Q plot para las obersvaciones, construya el diagrama de dispersion para cada par de observaciones. Parece justificada la suposicion de normal multivariada en este caso?.  
+
+
+```{r  5.4 b, warning= FALSE, message=FALSE, fig.width=10, fig.height=6}
+
+theme_set(
+  theme_minimal() +
+    theme(legend.position = "top")
+  )
+library(gridExtra)
+
+qq_plot <- function(data, var_name) {
+  ggplot(data, aes(sample = !!rlang::sym(var_name))) +
+    stat_qq() +
+    stat_qq_line() +
+    ggtitle(var_name) 
+}
+
+sweat_rate_qq <- qq_plot(sweat_data, "Sweat_rate")
+sodium_qq <- qq_plot(sweat_data, "Sodium")
+potassium_qq <- qq_plot(sweat_data, "Potassium")
+
+grid.arrange(sweat_rate_qq, sodium_qq, potassium_qq, ncol = 3)
+
+
+```
+Recordemos que al asumir normal multivariada, implicitamente decimos que para cada particion de el vector de variables tambien se cumple el supuesto de nornmalidad bi-variada o univariada en cualquier caso el qq-plot nos sirve para ver si se cumple la normal univariada, de donde para la variable de Sodium vemos un buen ajuste. Sin embargo para sweat_rate y Potassium se evidencia un desfase una de las colas. Con lo cual nos da un leve indicio que como variables univariadas pueden no cumplir el supuesto de normalidad univariada.
+
+```{r  5.4 b scatter plot, fig.width=10, fig.height=6}
+
+pairs(sweat_data, 
+      main = "Diagrama de Dispersión", 
+      pch = 19, 
+      col = "blue")
+```
+Con este tipo de gráficos lo que buscamos es ver correlaciones entre cada par de variables, por ejemplo entre sweat_rate y sodium vemos que hay correlacion positiva y sweat_rate y potasio negativa. En contraste Sodium y Potassium no evidencian una correlación apreciable. 
+
+# 5.5
+
+Las cantidades de $\bar{x},S \: \: \text{y} \: \: S^{-1}$, estan dadas en el ejemplo 5.3 para los datos transformados de radiación microonda. Realiza una prueba de la hipótesis para $H_0: \mu^{\prime} = [.55, .60]$ con un $\alpha = .05$- Es su resultado consistente con la elipse de confianza al 95% para la imagen representada en la figura 5.1
+
+
+```{r  5.5, fig.width=10, fig.height=6}
+
+X_barra <- matrix(c(0.564, 0.603), ncol = 1)
+
+S <- matrix(c(0.0144, 0.0117,
+              0.0117, 0.0146), byrow = FALSE, ncol = 2)
+
+S_inv <- solve(S)
+
+p <- 2
+n <- 42
+signi <- 0.05
+
+mu_0 <- c(0.55, 0.60)
+
+T2 <- n*t(X_barra-mu_0) %*% S_inv %*% (X_barra - mu_0)
+
+print(paste("Sobre los datos transformados, el estadístico T^2 =", T2[1, 1]))
+
+T2_c <- p*(n-1)/(n-p)*qf(1-signi, p, (n-p))
+
+print(paste("Luego, el valor critico es T^2_c =", T2_c))
+
+confidenceEllipse(X.mean = X_barra, eig = eigen(S), n = n, p = p, alpha = signi)
+
+
+```
+No rechazamos $H_0$ con una significancia del 95% ( concluimos que $\mu^{\prime} = [.55, .60]$). El resultado es consistente con la imagen ya que el vector $[.55, .60]$ si esta dentro de la elipse.
+
+# 5.11
+
+Un antropólogo físico realizó un análisis mineral de nueve antiguos cabellos peruanos. Los resultados para los niveles de cromo ($x_1$) y estroncio ($x_2$), en partes por millón (ppm),fueron los siguientes:
+
+
+```{r  5.11}
+
+hair_data  <- data.frame(
+  x1 = c(0.48, 40.53, 2.19, 0.55, 0.74, 0.66, 0.93, 0.37, 0.22),
+  x2 = c(12.57, 73.68, 11.13, 20.03, 20.29, 0.78, 4.64, 0.43, 1.08)
+  )
+
+```
+Se sabe que niveles bajos (menores o iguales a .100 ppm) de cromo sugieren la presencia de diabetes, mientras que el estroncio es una indicación de la ingesta de proteínas animales.  
+
+(a) Grafique una elipse conjunta al 90% de confianza, para la media poblacional $\mu^{\prime} = [\mu_1, \mu_2]$, asumiendo que esos nueve individuos representan una muestra aleatoria para la determinada antigua cultura peruana.
+```{r  5.11 elipse, fig.width=10, fig.height=6}
+
+X_barra <- colMeans(hair_data)
+S <- cov(hair_data)
+n <- 9
+p <- 2
+signi <- 0.10
+
+
+confidenceEllipse(X.mean = X_barra, eig = eigen(S), n = n, p = p, alpha = signi)
+
+```
+(b) Obtenga los intervalos de confianza simulteanos individuales del 90% para $\mu_1$ y $\mu_2$ “proyectando” la elipse construida en la Parte a en cada eje de coordenadas. (Alternativamente, podríamos usar el Resultado 5.3.). ¿Parece como si esta cultura peruana tuviera un nivel medio de estroncio de 10? Es decir, ¿alguno de los puntos ($\mu_1$ arbitrario, 10)en las regiones de confianza? ¿Es $[.30,10]^\prime$ un valor plausible para $/mu$? Explicar.  
+
+Recuerde que el intervalo de confianza para la variable $X_i$ esta dado por
+\[
+\bar{X}_i \pm \sqrt{\frac{p (n - 1)}{n - p}F_{1-\alpha;p,(n-p)}} \cdot \sqrt{\frac{S_{ii}}{n}}
+\]
+```{r  5.11 IC}
+
+T2_c <- qf(1-signi, p, (n-p))
+
+low_x1 <- X_barra[1] - sqrt(p*(n-1)/(n-p)*T2_c)*sqrt(S[1,1]/n)
+upper_x1 <- X_barra[1] + sqrt(p*(n-1)/(n-p)*T2_c)*sqrt(S[1,1]/n)
+
+low_x2 <- X_barra[2] - sqrt(p*(n-1)/(n-p)*T2_c)*sqrt(S[2,2]/n)
+upper_x2 <- X_barra[2] + sqrt(p*(n-1)/(n-p)*T2_c)*sqrt(S[2,2]/n)
+
+print(paste("El itervalo de confianza para x1:(", low_x1, ",", upper_x1, ")"))
+print(paste("El itervalo de confianza para x2:(", low_x2, ",", upper_x2, ")"))
+
+```
+Finalmente como $[0.30, 10]$ esta dentro del intervalo de confianza al 90% es un valor plausible para $\mu$
+
+(c) ¿Estos datos parecen ser normales bivariados? Analice su estado con referencia a los Q-Q plots y un diagrama de dispersión. Si los datos no son normales bivariados, ¿qué implicaciones tiene esto para los resultados de las partes a y b?
+
+```{r  5.11 qqplots,fig.width=10, fig.height=6}
+
+x1_qq <- ggplot(hair_data, aes(sample = x1)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("QQ-plot cromo") 
+
+x2_qq <- ggplot(hair_data, aes(sample = x2)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("QQ-plot estroncio") 
+
+
+hair_scatter <- ggplot(hair_data, aes(x = x1, y = x2)) +
+  geom_point(color = "#FC4E07", size = 2, shape = 2) +
+  ggtitle("Diagrama de dispersion")
+
+grid.arrange(x1_qq,x2_qq,hair_scatter, ncol = 3)
+
+
+```   
+En los QQ-plots vemos que hay un outlier para ambos, si nos vamos al data frame $X$, vemos que corresponde a la misma pareja,que es el valor $x_{2,1}$ y $x_{2,1}$, es decir el mismo individo hace que se descuadre por mucho el qq-plot en referencia con los teoricos para una normal. Con lo cual da un indicio de posible cola pesada/asimetria en la dispersion de los datos. Ahora, del diagrama de dispersión tenemos un patron NO eliptico y disperso que indicarian desviaciones de la normalidad o correlaciones no lineales también, habria que aplicar alguna prueba de normalidad multivariada. A tener en cuenta que el apartado a) no tendria validez si no mostramos que la poblacion sigue una distribucion normal multivariada ya que todo se construye a partir de este supuesto, para b)  los intervalos de confianza son reales si son normales univariados.  
+
+
+(d) Vamos a analizar los mismo graficos pero eliminando esa muestra 
+
+```{r  5.11 extend  qqplots,fig.width=10, fig.height=6}
+
+hair_data_modificado <- hair_data %>%
+  slice(-2)
+
+x1_qq_mod <- ggplot(hair_data_modificado, aes(sample = x1)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("QQ-plot cromo") 
+
+x2_qq_mod <- ggplot(hair_data_modificado, aes(sample = x2)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("QQ-plot estroncio") 
+
+
+hair_scatter_mod <- ggplot(hair_data_modificado, aes(x = x1, y = x2)) +
+  geom_point(color = "#FC4E07", size = 2, shape = 2) +
+  ggtitle("Diagrama de dispersion")
+
+grid.arrange(x1_qq_mod,x2_qq_mod,hair_scatter_mod, ncol = 3)
+```   
+Sin ese individuo podemos acercarnos mas al indicio de normalidad univariada y bi-variada. Sin embargo partimos del supuesto que la muestra era representativa, con lo cual este análisis no tendria validez ya que tenemos un sesgo en la muestra, sin embargo es interesante ver como los outliers afectan. Se podrian correr las pruebas con y sin este elemento de la muestra y comparar los resultados.  
+
+
+# 5.18
+
+Use los datos de las pruebas universitarias del ejemplo 5.5
+
+```{r  5.18 data}
+
+college_test_data <- data.frame(
+  x1 = c(468, 428, 514, 547, 614, 501, 421, 527, 527, 620, 587, 541, 561, 468, 614, 527, 
+           507, 580, 507, 521, 574, 587, 488, 488, 587, 421, 481, 428, 640, 574, 547, 580, 
+           494, 554, 647, 507, 454, 427, 521, 468, 587, 507, 574, 507, 494, 541, 362, 408, 
+           594, 501, 687, 633, 647, 647, 614, 633, 448, 408, 441, 435, 501, 507, 620, 415, 
+           554, 348, 468, 507, 527, 527, 435, 660, 733, 507, 527, 428, 481, 507, 527, 488, 
+           607, 561, 614, 527, 474, 441, 607),
+  x2 = c(41, 39, 53, 67, 61, 67, 46, 50, 55, 72, 63, 59, 53, 62, 65, 48, 32, 64, 59, 54, 
+           52, 64, 51, 62, 56, 38, 52, 40, 65, 61, 64, 64, 53, 51, 58, 65, 52, 57, 66, 57, 
+           55, 61, 54, 53, 41, 47, 36, 28, 68, 25, 75, 52, 67, 65, 59, 65, 55, 51, 35, 60, 
+           54, 42, 71, 52, 69, 28, 49, 54, 47, 47, 50, 70, 73, 45, 62, 37, 48, 61, 66, 41, 
+           69, 59, 70, 49, 41, 47, 67),
+  x3 = c(26, 26, 21, 33, 27, 29, 22, 23, 19, 32, 31, 19, 26, 20, 28, 21, 27, 21, 21, 23, 
+           25, 31, 27, 18, 26, 16, 26, 19, 25, 28, 27, 28, 26, 21, 23, 23, 28, 21, 26, 14, 
+           30, 31, 31, 23, 24, 25, 17, 17, 23, 26, 33, 31, 29, 34, 25, 28, 24, 19, 22, 20, 
+           21, 24, 36, 20, 30, 18, 25, 26, 31, 26, 28, 25, 33, 28, 29, 19, 23, 19, 23, 28, 
+           28, 34, 23, 30, 16, 26, 32)
+)
+
+```
+
+
+
+(a) Pruebe la hipótesis nula $H_o: \: \mu^\prime = [500,50, 30]$ frente a $H_1: \: \mu^\prime \neq [500,50, 30]$ en el nivel de significancia $\alpha=.05$ . Suponga que $[500,50,30]^\prime$ representa las puntuaciones promedio de miles de estudiantes universitarios durante los últimos 10 años. ¿Hay motivos para creer que el grupo de estudiantes representado por las puntuaciones de la Tabla 5.2 está obteniendo puntuaciones diferentes? Explique.
+
+
+```{r  5.18}
+
+
+n <- nrow(college_test_data)
+p <- ncol(college_test_data)
+X_barra <-  colMeans(college_test_data)
+S <- cov(college_test_data)
+signi <- 0.05
+
+mu_0 <- c(500,50,30)
+
+
+T2 <- n*t(X_barra-mu_0) %*% solve(S) %*% (X_barra-mu_0)
+
+T2_c <- p*(n-1)/(n-p) * qf(1-signi, p, (n-p))
+
+print(paste("El estadistico T^2=", T2))
+print(paste("El valor critico es=", T2_c))
+```
+Como ya vimos como se calcula de forma manual, de ahora en adelante vamos a usar la función HotellingsT2Test de DescTools para hacer estas pruebas de hipotesis.
+```{r  5.18 desctools}
+
+HotellingsT2Test(college_test_data, 
+                 mu = mu_0,)
+```
+Los estadisticos no son iguales porque el $T^2$ ellos lo calculan pasando el $\frac{p(n-1)}{n-p} = 3.071429$ a dividir al otro lado, nuestro $T^2 = 223.3102 $, ahora $\frac{223.3102}{3.071429} = 72.70564$  lo que produce el estadistico que nos arroja la función de prueba. La de nosotros tenia $T^2 > \frac{p(n-1)}{n-p}F_{(1-\alpha);p,(n-p)} $ de donde se rechazaba $H_0$ que es que el vctor de medias no es igual $[500,50,30]^\prime$. con la prueba vemos el $p_{value}$, como el $p_{value} < \alpha$ entonces rechazamos $H_0$ en concordancia con lo dicho anteriormente. Luego hay claros motivos para pensar que los estudiantes estan obteniendo puntuaciones diferentes porque para que se acerquen a esa media ya que tomamos una significancia del 5% es decir solo el 5% de las veces vamos a rechazar la hipotesis cuando en realidad es verdadera, ademas el $p_value$ es bajisimo, con lo cual la evidencia nos esta diciendo que es muy dificil que se cumpla esto.  
+
+(b) Determine las longitudes y direcciones de los ejes para una elipse al 95% de confianza 
+
+```{r  5.18 elipse}
+
+lambda_i <- eigen(S)$values
+e_i <- eigen(S)$vectors
+
+
+
+
+axes_length <- sqrt(lambda_i) * sqrt(p*(n-1)*qf(1-signi, p, (n-p))/(n*(n-p)))
+
+axes_direction <- e_i
+
+
+axes_length
+axes_direction
+
+```
+(c) Construya  Q-Q plots  a partir de las distribuciones marginales de las puntuaciones de ciencias sociales e historia  ($x_1$), lenguaje ($x_2$) y científicas ($x_3$). Además, construya los tres posibles diagramas de dispersión a partir de los pares de observaciones sobre diferentes variables. ¿Estos datos parecen estar distribuidos normalmente? Dar un análisis
+
+
+```{r  5.18 qqplots}
+
+x1_test_qq <- qq_plot(college_test_data, "x1")
+x2_test_qq <- qq_plot(college_test_data, "x2")
+x3_test_qq <- qq_plot(college_test_data, "x3")
+
+grid.arrange(x1_test_qq, x2_test_qq, x3_test_qq, ncol = 3)
+
+pairs(college_test_data, 
+      main = "Diagrama de Dispersión", 
+      pch = 19, 
+      col = "blue")
+
+
+```
+
+Los datos parecen bastante normales, puesto que los qq-plots parecen mostar que individualmente todas las variables siguen una distribucion normal univariada, menos x2 que tiene una cola mas pesada hacia un lado, luego del diagrama de dispersion tenemos que hay formas elipticas y no hay una agrupacion rara que indique anormalidad.
+
+
+
+# 5.19
+
+Las Medidas de $x_1$= rigidez y $x_2$ = resistencia a la flexión para una muestra de $n = 30$ piezas de un grado particular de madera se dan en la siguiente tabla
+
+```{r  5.19 qqplots}
+
+lumber_data <-  data.frame(
+x1 = c(1232, 1115, 2205, 1897, 1932, 1612, 1598, 1804, 1752, 2067, 2365, 1646, 
+        1579, 1880, 1773, 1712, 1932, 1820, 1900, 2426, 1558, 1470, 1858, 1587,
+        2208, 1487, 2206, 2332, 2540, 2322),
+
+x2 = c(4175, 6652, 7612, 10914, 10850, 7627, 6954, 8365, 9469, 6410, 10327, 
+        7320, 8196, 9709, 10370, 7749, 6818, 9307, 6457, 10102, 7414, 7556, 
+        7833, 8309, 9559, 6255, 10723, 5430, 12090, 10072)
+        )
+
+```
+
+(a) Construya y dibuje una elipse con un 95% de confianza para el par $[\mu_1,\mu_2]^\prime$  donde $\mu_1 = E(X_1)$ y  $\mu_2 = E(X_2)$
+
+```{r  5.19 axes,fig.width=10, fig.height=6}
+
+n <- nrow(lumber_data)
+p <- ncol(lumber_data)
+
+X_barra <- colMeans(lumber_data)
+S <- cov(lumber_data)
+
+eigenvalues <- eigen(S)$values
+eigenvectors <- eigen(S)$vectors
+
+# Nivel de significancia
+signi <- 0.05
+
+# Calcular las longitudes de los ejes de la elipse
+axes_length <- sqrt(eigenvalues) * sqrt(p * (n - 1) * qf(1 - signi, p, (n - p)) / (n * (n - p)))
+
+# Definir el centro de la elipse
+h <- X_barra[1]  # Coordenada x del centro
+k <- X_barra[2]  # Coordenada y del centro
+
+# Crear un vector de ángulos
+t <- seq(0, 2 * pi, length.out = 100)
+
+# Coordenadas de la elipse antes de la rotación
+x <- axes_length[1] * cos(t)
+y <- axes_length[2] * sin(t)
+
+# matriz de rotación
+rotation_matrix <- eigenvectors
+rotated_coords <- t(rotation_matrix %*% rbind(x, y))
+
+# Trasladar al centro
+rotated_coords[,1] <- rotated_coords[,1] + h
+rotated_coords[,2] <- rotated_coords[,2] + k
+
+# Graficar la eipse
+plot(rotated_coords, type = 'l', xlab = "Eje X", ylab = "Eje Y", main = "Elipse de confianza",
+     asp = 1, col = "blue", xlim = range(rotated_coords[,1]), ylim = range(rotated_coords[,2]))
+
+```
+
+Luego la region para el vector $\mu$ esta dada por el conjunto de vectores $\mu = [\mu_1,\mu_2]^\prime$ tales que
+$[\bar{X} - \mu]S^{-1}[\bar{X} - \mu]^\prime \leq \frac{p(n-1)}{n(n-p)}F_{1-\alpha;p,(n-p)}$ que luego de calular sus valores es
+
+
+$[1860.500-\mu_1, 8354.133-\mu_2]S^{-1}[1860.500-\mu_1, 8354.133-\mu_2]^\prime \leq  0.2306457$
+
+
+```{r  5.19 elipse,fig.width=10, fig.height=6}
+
+confidenceEllipse(X.mean = X_barra, eig = eigen(S), n = n, p = p, alpha = signi)
+```
+
+(b) Supongamos que \(\mu_1 = 2000\) y \(\mu_2 = 10,000\) representan los valores "típicos" para la rigidez y la resistencia a la flexión, respectivamente. Dado el resultado obtenido en (a), ¿son los datos en la Tabla  consistentes con estos valores? Explique. Para responder a esta pregunta, se debe verificar si el punto \((2000, 10,000)\) cae dentro de la elipse de confianza construida en el apartado (a). Si está dentro de la elipse, entonces los datos son consistentes con los valores típicos. Por el contrario, si está fuera, los datos no son consistentes con esos valores.   
+
+Dado que \(\mu_0 = (2000, 10000)^\prime\) no cae dentro de la elipse de confianza al 95%, rechazaríamos la hipótesis \(H_0: \mu = \mu_0\) al nivel de significancia del 5%. Por lo tanto, los datos analizados no son consistentes con estos valores.
+ 
+(c) Es la distribucion normal-bivariada un modelo viable para la poblacion?. Explique con referencia a los qq-plots y el diagrama de dispersion
+
+
+```{r  5.19  qq plots,fig.width=10, fig.height=6}
+
+
+x1_qq <- qq_plot(lumber_data, "x1")
+x2_qq <- qq_plot(lumber_data, "x2")
+
+grid.arrange(x1_qq, x2_qq, ncol = 2)
+
+```
+Los qq-plots, para la $x_1$ y $x_2$ muestran que la normalidad marginal no es violada de manera significativa, esto en base en que ambas parecen aproximarse bastante bien a una distribución normal.
+
+```{r  5.19  scatter,fig.width=10, fig.height=6}
+
+pairs(lumber_data, 
+      main = "Diagrama de Dispersión", 
+      pch = 19, 
+      col = "blue")
+
+```
+El diagrama de dispersión no muestra niguna desviacion significativa de la normal bivariada. Esto implica que la relación conjunta entre las dos variables también sigue una forma elíptica cosa típica de la distribución normal bivariada. En conjunto, podemos concluir que el modelo de probabilidad de distribucion normal bivariada es plausible para los datos, lo que significa que se cumplen los supuestos necesarios para la inferencia que se estuvo haciendo.  
+
+
+# 5.20
+
+Un ecólogo de vida silvestre midió $x_1$ a longitud de la cola y $x_2$ la longitud de las alas (en milímetros) para una muestra de $n = 45$ embras de milano de pico ganchudo. Estos datos están mostrados en el siguiente data frame 
+
+```{r  5.20  data}
+
+bird_data <- data.frame(
+  x1 = c(191, 197, 208, 180, 180, 188, 210, 196, 191, 179, 208, 202, 200, 192, 199, 
+         186, 197, 201, 190, 209, 187, 207, 178, 202, 205, 190, 189, 211, 216, 189, 
+         173, 194, 198, 180, 190, 191, 196, 207, 209, 179, 186, 174, 181, 189, 188),
+  
+  x2 = c(284, 285, 288, 273, 275, 280, 283, 288, 271, 257, 289, 285, 272, 282, 280, 
+         266, 285, 295, 282, 305, 285, 297, 268, 271, 285, 280, 277, 310, 305, 274,
+         271, 280, 300, 272, 292, 286, 285, 286, 303, 261, 262, 245, 250, 262, 258)
+)
+
+```
+
+(a) Encuentre y dibuje la elipse de confianza al 95% para las medias poblacionales \(\mu_1\) y \(\mu_2\). Suponga que se sabe que \(\mu_1 = 190\) mm y \(\mu_2 = 275\) mm para los milanos de pico ganchudo machos. ¿Son estos valores plausibles para la media de la longitud de la cola y la media de la longitud de las alas de las aves hembras? Explique.
+
+
+```{r  5.20 elipse, ,fig.width=10, fig.height=6}
+
+X_barra <- colMeans(bird_data)
+S <- cov(bird_data)
+n <- nrow(bird_data)
+p <- ncol(bird_data)
+signi <- 0.05
+
+
+confidenceEllipse(X.mean = X_barra, eig = eigen(S), n = n, p = p, alpha = signi)
+```
+Finalmente, los valores de la media para machos caen dentro de la elipse de confianza, con lo cual se concluye que si son valores plausibles 
+
+
+(c) ¿Es la distribución normal bivariada un modelo poblacional viable? Explique haciendo referencia a los Q-Q plots y a un diagrama de dispersión.
+
+```{r  5.20  qq plots,fig.width=10, fig.height=6}
+
+
+x1_qq <- qq_plot(bird_data, "x1")
+x2_qq <- qq_plot(bird_data, "x2")
+
+grid.arrange(x1_qq, x2_qq, ncol = 2)
+
+```
+Los gráficos sugieren que sobre todo $x_2$ no sigue una distribución normal ya que esta muy desajustado respecto a la recta, podriamos porbar con una transformación de la varibale.
+```{r  5.20  scatter ,fig.width=10, fig.height=6}
+
+pairs(bird_data, 
+      main = "Diagrama de Dispersión", 
+      pch = 19, 
+      col = "blue")
+
+```
+Asi, pierde relevancia analizar el diagrama de dispersión.
+
+
+
